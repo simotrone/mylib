@@ -14,8 +14,8 @@ my $links = Trone::Links->new(input => "file://$FindBin::Bin/extra/links.txt");
 isa_ok($links,'Trone::Links');
 
 # list
-throws_ok { my $no_l = Trone::Links->new(input => "file://$FindBin::Bin/extra/not_readable.txt")->list } qr/Can't read file/,
-        "list() access fails because file isn't readable";
+#throws_ok { my $no_l = Trone::Links->new(input => "file://$FindBin::Bin/extra/not_readable.txt")->list } qr/Can't read file/,
+#        "list() access fails because file isn't readable";
 
 is($links->list, 4, 'list() access works. 4 items');
 isa_ok($_,'Trone::Links::Link') for $links->list;
