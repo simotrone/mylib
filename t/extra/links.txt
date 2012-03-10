@@ -1,0 +1,5 @@
+
+http://alone.domain.com
+http://just.title.com This is the title
+tag0 http://just.one.tag
+tag0,tag1,tag2 http://normal.link.com With title

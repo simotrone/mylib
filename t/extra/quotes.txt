@@ -1,0 +1,16 @@
+author1
+text1
+
+author2 with space
+text2 with space
+
+author3 with space
+text3 with \n
+as this
+and this
+
+author4 japanese
+読んでばか
+
+author5 normal
+final text5
