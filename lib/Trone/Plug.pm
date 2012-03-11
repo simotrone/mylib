@@ -50,6 +50,18 @@ Trone::Plug - Interface to many extract Plugins
             type   => 'file',
         );
 
+        # or
+
+        my $plug = Trone::Plug->new(
+            source => 'user:pass@localhost/dbname',
+            type   => 'mysql',
+        );
+
+        # After is possible manipulate a Plug::* instance
+
+        $plug->factory->...
+
+
 =head1 METHODS
 
 =over 4
