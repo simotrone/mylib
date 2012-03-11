@@ -132,7 +132,7 @@ QUOTES - Manage and show Quote objects
 =head1 SYNOPSIS
 
         # $quotes is a Quotes object
-        my $quotes = Quotes->new(input => 'file_name');
+        my $quotes = Quotes->new(input => 'file://file_name');
         my @quotes = $quotes->list;
 
         # $quote is a Quote object
@@ -160,7 +160,7 @@ The Quotes object manage quotes in a simple text file following this scheme:
 
 =over 4
 
-=item $quotes = Quotes->new(input => 'file_name');
+=item $quotes = Quotes->new(input => 'file://file_name');
 
 The constructor return a Quotes object. It needs a filename to parse and get data.
 The source text file format is described in DESCRIPTION section.
@@ -175,14 +175,38 @@ If author is not given, 'Anonymous' is registered.
 
 =back
 
+=head1 QUOTES ATTRIBUTE
+
+=over 4
+
+=item $str = $quotes->input
+
+Return the `input' attribute. It's just a getter.
+
+=back
+
 =head1 QUOTES METHODS
 
 =over 4
 
-=item @quotes = $quotes->list
+=item @quotes = $quotes->list()
 
-The list method trigger the source file reading and return an array composed by
+The list method trigger the source file reading and returns an array composed by
 Quote objects.
+
+=item $arr_ref = $quotes->dump()
+
+dump() returns data as array reference.
+
+This can be useful if caller want simple Perl data struct instead Quote object.
+
+        [
+          {
+            author => "author one",
+            text   => "text one",
+          },
+          { ... }
+        ]
 
 =back
 
