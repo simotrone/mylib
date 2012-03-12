@@ -2,9 +2,7 @@ package Trone::Quotes;
 
 use strict;
 use warnings;
-use v5.10;
 use Carp;
-use Trone::Quotes::Quote;
 use Trone::Plug;
 
 sub new {
@@ -18,7 +16,7 @@ sub new {
                         quotes => [],
                 },
                 _source => undef,
-                _type   => undef,
+                _driver => undef,
         }, $class;
 }
 
@@ -37,10 +35,10 @@ sub dump {
         return \@arr;
 }
 
-sub _type {
+sub _driver {
         my ($self, $val) = @_;
-        return $self->{_type} unless $val;
-        $self->{_type} = $val;
+        return $self->{_driver} unless $val;
+        $self->{_driver} = $val;
         return $self;
 }
 sub _source {
@@ -63,62 +61,19 @@ sub _read {
         # mysql://user:pass@localhost/database
 
         my ($type, $source) = split /:\/\//, $self->input, 2;
-        $self->_type($type);
         $self->_source($source);
-
-        # Could be nice a sort of $self->_read_"$type" ...
-        given ($type) {
-                when (/file/)  { $self->_read_file() }
-                when (/mysql/) { $self->_read_mysql() }
-        }
-
-        return $self;
-}
-
-sub _read_file {
-        my $self = shift;
+        # create Trone::Quotes::Source::*
+        $self->_driver(caller ."::Source::". ucfirst $type);
 
         $self->_clean();
 
-        my @records = Trone::Plug->new(
-                source    => $self->_source,
-                type      => $self->_type,
-                separator => "\n\n",
-        )->factory->read;
-
-        foreach (@records) {
-                my ($author,$text) = split(/\n/, $_, 2);
-                $text =~ s/[\n]+$//;
-
-                my $quote = Trone::Quotes::Quote->new(
-                        author => $author,
-                        text   => $text
-                );
-                push @{$self->{cached}->{quotes}}, $quote;
-        }
-
-        return $self;
-}
-
-sub _read_mysql {
-        my $self = shift;
-
-        $self->_clean();
-
-        my @records = Trone::Plug->new(
+        my $plug = Trone::Plug->new(
                 source => $self->_source,
-                type   => $self->_type,
-                table  => 'quotes',
-                fields => [qw/author text/],
-        )->factory->results();
+                driver => $self->_driver,
+        );
 
-        foreach (@records) {
-                my $quote = Trone::Quotes::Quote->new(
-                        author => $_->{author},
-                        text   => $_->{text}
-                );
-                push @{$self->{cached}->{quotes}}, $quote;
-        }
+        # $plug->factory->quotes method returns quotes (for each source plugin).
+        @{$self->{cached}->{quotes}} = map { $_ } $plug->factory->quotes;
 
         return $self;
 }

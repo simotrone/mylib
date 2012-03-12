@@ -4,31 +4,22 @@ use strict;
 use warnings;
 use Carp;
 
-use Trone::Plug::Fs;
-use Trone::Plug::Mysql;
-
-# Plug namespace ?
-my $types = {
-        'file'  => 'Trone::Plug::Fs',
-        'mysql' => 'Trone::Plug::Mysql',
-};
-
 sub new {
         my ($class,%attr) = @_;
 
         my $source = delete $attr{source};
-        my $type   = delete $attr{type};
+        my $driver = delete $attr{driver};
         
         croak "$class need `source' attribute" unless $source;
-        croak "$class need `type' attribute"   unless $type;
+        croak "$class need `driver' attribute" unless $driver;
 
-        my $plug = $types->{$type};
-        croak "`$type' type isn't valid."      unless $plug;
-
-        my %opts = %attr;
+        # Load DRIVER at runtime
+        eval "require $driver";
+        croak "Problem loading $driver - $@" if $@;
+        $driver->import();
 
         bless {
-                factory => sub { $plug->new(%opts, input => $source) },
+                factory => sub { $driver->new(input => $source) },
         }, $class;
 }
 
@@ -47,14 +38,14 @@ Trone::Plug - Interface to many extract Plugins
 
         my $plug = Trone::Plug->new(
             source => '/path/to/my/file',
-            type   => 'file',
+            driver => 'My::Driver',
         );
 
         # or
 
         my $plug = Trone::Plug->new(
             source => 'user:pass@localhost/dbname',
-            type   => 'mysql',
+            type   => 'My::DB::Driver',
         );
 
         # After is possible manipulate a Plug::* instance
