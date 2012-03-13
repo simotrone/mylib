@@ -4,12 +4,13 @@ use strict;
 use warnings;
 use Carp;
 use DBI;
+use base 'Trone::Quotes::Source::Base';
 use Trone::Quotes::Quote;
 
 sub new {
         my ($class, %attr) = @_;
 
-        croak "$class need `input0 attribute" unless defined $attr{input};
+        croak "$class need `input' attribute" unless defined $attr{input};
 
         # manage input attribute
         # input -> user:password@localhost/database
@@ -26,29 +27,18 @@ sub new {
                         ([a-zA-Z0-9]*)    # "database_name"
                         $}x;
 
-        bless {
-		credentials => {
-                        host   => $host   || 'localhost',
-			dbname => $dbname || undef,
-			dbuser => $user   || $ENV{USER} || undef,
-			dbpass => $passwd || undef,
-		},
-                dbh    => undef,
-                quotes => undef,
-        }, $class;
-}
+        my $self = $class->SUPER::new();
 
-sub clean {
-        my $self = shift;
-        $self->{quotes} = undef;
+        $self->{credentials} = {
+                host   => $host   || 'localhost',
+                dbname => $dbname || undef,
+                dbuser => $user   || $ENV{USER} || undef,
+                dbpass => $passwd || undef,
+        };
         return $self;
 }
 
-sub quotes {
-        my $self = shift;
-        $self->fetch() unless defined $self->{quotes} and scalar @{$self->{quotes}};
-        return @{$self->{quotes}};
-}
+sub read { shift->fetch() }
 
 sub dbh {
         my $self = shift;
@@ -70,11 +60,13 @@ sub dbh {
 
 sub fetch {
         my $self = shift;
-        
+
         my $sth = $self->dbh->prepare("SELECT author,text FROM quotes")
                 or die $DBI::errstr;
         $sth->execute or die $DBI::errstr;
 
+        $self->clean;
+        
         while (my $r = $sth->fetchrow_hashref) {
                 my $q = Trone::Quotes::Quote->new(text => $r->{text});
                 $q->author($r->{author}) if defined $r->{author};

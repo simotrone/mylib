@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Carp;
 use IO::File;
+use base 'Trone::Quotes::Source::Base';
 use Trone::Quotes::Quote;
 
 sub new {
@@ -12,26 +13,12 @@ sub new {
         croak "$class need `input' attribute" unless defined $attr{input};
         croak "$class attribute `input' have to exist" unless -f $attr{input};
 
-        bless {
-                file   => $attr{input},
-                quotes => undef,
-        }, $class;
-}
-
-sub file  { shift->{file} }
-sub clean {
-        my $self = shift;
-        $self->{quotes} = undef;
+        my $self = $class->SUPER::new();
+        $self->{file} = $attr{input};
         return $self;
 }
 
-sub quotes {
-        my $self = shift;
-
-        $self->read unless defined $self->{quotes} and scalar @{$self->{quotes}};
-
-        return @{$self->{quotes}};
-}
+sub file  { shift->{file} }
 
 sub read {
         my $self = shift;
