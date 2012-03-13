@@ -5,7 +5,6 @@ use warnings;
 use v5.10;
 use Carp;
 use List::MoreUtils qw/uniq/;
-use Trone::Links::Link;
 use Trone::Plug;
 
 sub new {
@@ -20,7 +19,7 @@ sub new {
                         tags   => [],
                 },
                 _source => undef,
-                _type   => undef,
+                _driver => undef,
         }, $class;
 }
 
@@ -45,10 +44,10 @@ sub by_tag {
         grep { $_->has_tag($tag) } $self->list;
 }
 
-sub _type {
+sub _driver {
         my ($self, $val) = @_;
-        return $self->{_type} unless $val;
-        $self->{_type} = $val;
+        return $self->{_driver} unless $val;
+        $self->{_driver} = $val;
         return $self;
 }
 sub _source {
@@ -69,79 +68,21 @@ sub _clean {
 sub _read {
         my $self = shift;
 
+        # file://path/to/file
+        # mysql://user:pass@localhost/database
+
         my ($type, $source) = split /:\/\//, $self->input, 2;
-        $self->_type($type);
         $self->_source($source);
-
-        given ($type) {
-                when (/file/)  { $self->_read_file() }
-                when (/mysql/) { $self->_read_mysql() }
-        }
-
-        return $self;
-}
-
-sub _read_file {
-        my $self = shift;
-
-        $self->_clean();
-       
-        my @records = Trone::Plug->new(
-                source => $self->_source,
-                type   => $self->_type,
-        )->factory->read;
-
-        my $re = qr{https?://[^\s]*};
-
-        foreach (@records) {
-                next unless m/$re/;
-                # avoid all rows without $re (http://) in
-                # like blank or bad formatted line.
-                chomp;
-
-                # tag0,tag1 http://www.domain.ext/path/to/resource Title of Res
-                my ($tags, $href, $title) = m/^
-                        ([^\s]*)
-                                (?:\s+)?
-                        ($re)
-                                (?:\s+)?
-                        (.*)?
-                $/x;
-                my @tags = split /,/, lc $tags;
-
-                my $link = Trone::Links::Link->new(
-                        href  => $href,
-                        title => $title,
-                        tags  => [@tags]
-                );
-                push @{$self->{cached}->{links}}, $link;
-        }
-
-        return $self;
-}
-
-sub _read_mysql {
-        my $self = shift;
+        $self->_driver(caller ."::Source::". ucfirst $type);
 
         $self->_clean();
 
-        my @records = Trone::Plug->new(
+        my $plug = Trone::Plug->new(
                 source => $self->_source,
-                type   => $self->_type,
-                table  => 'links',
-                fields => [qw/href title tags/],
-        )->factory->results();
+                driver => $self->_driver,
+        );
 
-        foreach (@records) {
-                my @tags = split /,/, lc $_->{tags};
-
-                my $link = Trone::Links::Link->new(
-                        href  => $_->{href},
-                        title => $_->{title},
-                        tags  => [@tags]
-                );
-                push @{$self->{cached}->{links}}, $link;
-        }
+        @{$self->{cached}->{links}} = map { $_ } $plug->factory->links;
 
         return $self;
 }
