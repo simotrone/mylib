@@ -3,60 +3,23 @@ package Trone::Quotes::Source::Mysql;
 use strict;
 use warnings;
 use Carp;
-use DBI;
 use base 'Trone::Quotes::Source::Base';
 use Trone::Quotes::Quote;
+use Trone::Plug::Mysql;
 
 sub new {
         my ($class, %attr) = @_;
 
         croak "$class need `input' attribute" unless defined $attr{input};
 
-        # manage input attribute
-        # input -> user:password@localhost/database
-        my ($user, $passwd, $host, $dbname) =
-                $attr{input} =~ m{^
-                        ([^:]*)           # "username"
-                        (?:               # don't group
-                            :             # :
-                            ([^@]*)       # "password"
-                        )?                # optional
-                        \@                # @
-                        (localhost|[^/]*) # "host_name"
-                        /                 # /
-                        ([a-zA-Z0-9]*)    # "database_name"
-                        $}x;
-
         my $self = $class->SUPER::new();
+        $self->{dbh} = Trone::Plug::Mysql->new($attr{input})->dbh;
 
-        $self->{credentials} = {
-                host   => $host   || 'localhost',
-                dbname => $dbname || undef,
-                dbuser => $user   || $ENV{USER} || undef,
-                dbpass => $passwd || undef,
-        };
         return $self;
 }
 
 sub read { shift->fetch() }
-
-sub dbh {
-        my $self = shift;
-
-        return $self->{dbh} //= do {
-		my $credentials   = $self->{credentials};
-
-                my $db_name = $credentials->{dbname};
-                my $db_user = $credentials->{dbuser};
-                my $db_pass = $credentials->{dbpass};
-
-                my $data_src      = "dbi:mysql:$db_name";
-                my $attr     	  = { RaiseError => 1, AutoCommit => 0 };
-
-                DBI->connect($data_src, $db_user, $db_pass, $attr)
-                        or die $DBI::errstr;
-        };
-}
+sub dbh  { shift->{dbh} }
 
 sub fetch {
         my $self = shift;
