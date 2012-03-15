@@ -2,6 +2,7 @@ package Trone::Plug;
 
 use strict;
 use warnings;
+use v5.014;    # non-destructive substitution
 use Carp;
 
 sub new {
@@ -14,9 +15,12 @@ sub new {
         croak "$class need `driver' attribute" unless $driver;
 
         # Load DRIVER at runtime
-        eval "require $driver";
-        croak "Problem loading $driver - $@" if $@;
-        $driver->import();
+        croak "Problem loading $driver - $@" unless eval {
+                my $pkg = "$driver.pm" =~ s{::}{/}gr;   # 5.14.0
+                require $pkg;
+                $driver->import() if defined &{"${driver}::import"};
+                1;
+        };
 
         bless {
                 factory => sub { $driver->new(input => $source) },
