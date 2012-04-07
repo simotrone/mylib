@@ -73,7 +73,11 @@ sub _read {
 
         my ($type, $source) = split /:\/\//, $self->input, 2;
         $self->_source($source);
-        $self->_driver(caller ."::Source::". ucfirst $type);
+
+        my $caller = caller;
+        my $uctype = ucfirst $type;
+        # create Trone::Links::Source::*
+        $self->_driver("${caller}::Source::$uctype");
 
         $self->_clean();
 
